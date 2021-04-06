@@ -31,7 +31,7 @@ for sentence, tags in data:
 if __name__ == "__main__":
     if os.path.isfile('tknyz.model'):
         print('model exists, continue')
-        model = torch.load('tknyz.model').cuda()
+        model = torch.load('tknyz.model')
     else:
         print('model doesnot exist, creating new')
         model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
@@ -45,7 +45,7 @@ if __name__ == "__main__":
         model.zero_grad()
 
         # sentence_in = prepare_sequence(sentence, word_to_ix)
-        # targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long).cuda()
+        # targets = torch.tensor([tag_to_ix[t] for t in tags], dtype=torch.long)
         sentence_in_pad, targets_pad = prepare_sequence_batch(data, word_to_ix, tag_to_ix)
         # loss = model.neg_log_likelihood(sentence_in, targets)
         loss = model.neg_log_likelihood_parallel(sentence_in_pad, targets_pad)

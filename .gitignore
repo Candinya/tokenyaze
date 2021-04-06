@@ -6,8 +6,6 @@ __pycache__/
 
 # 训练数据来源
 data/
-word.txt
-merge.txt
 
 # 模型
 *.model

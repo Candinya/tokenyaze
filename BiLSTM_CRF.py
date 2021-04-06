@@ -10,7 +10,7 @@ def argmax(vec):  # 返回每一行最大值的索引
 
 def prepare_sequence(seq, to_ix):  # seq是字序列，to_ix是字和序号的字典
     idxs = [to_ix[w] for w in seq]  # idxs是字序列对应的向量
-    return torch.tensor(idxs, dtype=torch.long).cuda()
+    return torch.tensor(idxs, dtype=torch.long)
 
 
 # LSE函数，模型中经常用到的一种路径运算的实现
@@ -31,23 +31,23 @@ class BiLSTM_CRF(nn.Module):
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
 
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim).cuda()
-        self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, num_layers=1, bidirectional=True).cuda()
+        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2, num_layers=1, bidirectional=True)
 
-        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size).cuda()  # Maps the output of the LSTM into tag space
+        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size)  # Maps the output of the LSTM into tag space
 
-        self.transitions = nn.Parameter(torch.randn(self.tagset_size, self.tagset_size)).cuda()  # 随机初始化转移矩阵
+        self.transitions = nn.Parameter(torch.randn(self.tagset_size, self.tagset_size))  # 随机初始化转移矩阵
 
         self.transitions.data[tag_to_ix[START_TAG], :] = -10000  # tag_to_ix[START_TAG]: 3（第三行，即其他状态到START_TAG的概率）
         self.transitions.data[:, tag_to_ix[STOP_TAG]] = -10000  # tag_to_ix[STOP_TAG]: 4（第四列，即STOP_TAG到其他状态的概率）
         self.hidden = self.init_hidden()
 
     def init_hidden(self):
-        return torch.randn(2, 1, self.hidden_dim // 2).cuda(), torch.randn(2, 1, self.hidden_dim // 2).cuda()
+        return torch.randn(2, 1, self.hidden_dim // 2), torch.randn(2, 1, self.hidden_dim // 2)
 
     # 所有路径的得分，CRF的分母
     def _forward_alg(self, feats):
-        init_alphas = torch.full((1, self.tagset_size), -10000.).cuda()  # 初始隐状态概率，第1个字是O1的实体标记是qi的概率
+        init_alphas = torch.full((1, self.tagset_size), -10000.)  # 初始隐状态概率，第1个字是O1的实体标记是qi的概率
         init_alphas[0][self.tag_to_ix[START_TAG]] = 0.
 
         forward_var = init_alphas  # 初始状态的forward_var，随着step t变化
@@ -73,14 +73,14 @@ class BiLSTM_CRF(nn.Module):
         self.hidden = self.init_hidden()
         embeds = self.word_embeds(sentence).view(len(sentence), 1, -1)
         lstm_out, self.hidden = self.lstm(embeds, self.hidden)
-        lstm_out = lstm_out.view(len(sentence), self.hidden_dim).cuda()
+        lstm_out = lstm_out.view(len(sentence), self.hidden_dim)
         lstm_feats = self.hidden2tag(lstm_out)
         return lstm_feats
 
     # 正确路径的分数，CRF的分子
     def _score_sentence(self, feats, tags):
-        score = torch.zeros(1).cuda()
-        tags = torch.cat([torch.tensor([self.tag_to_ix[START_TAG]], dtype=torch.long).cuda(), tags])
+        score = torch.zeros(1)
+        tags = torch.cat([torch.tensor([self.tag_to_ix[START_TAG]], dtype=torch.long), tags])
         for i, feat in enumerate(feats):
             # self.transitions[tags[i + 1], tags[i]] 是从标签i到标签i+1的转移概率
             # feat[tags[i+1]], feat是step i的输出结果，有５个值，对应B, I, E, START_TAG, END_TAG, 取对应标签的值
@@ -93,7 +93,7 @@ class BiLSTM_CRF(nn.Module):
         backpointers = []  # 回溯路径；backpointers[i][j]=第i帧到达j状态的所有路径中, 得分最高的那条在i-1帧是什么状态
 
         # Initialize the viterbi variables in log space
-        init_vvars = torch.full((1, self.tagset_size), -10000.).cuda()
+        init_vvars = torch.full((1, self.tagset_size), -10000.)
         init_vvars[0][self.tag_to_ix[START_TAG]] = 0
 
         forward_var = init_vvars
