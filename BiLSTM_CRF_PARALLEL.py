@@ -36,10 +36,6 @@ def log_sum_exp(vec):  # vec.shape=[1, target_size]
     return max_score + torch.log(torch.sum(torch.exp(vec - max_score_broadcast)))
 
 
-def log_add(args):
-    return torch.log(torch.sum(torch.exp(args)))
-
-
 class BiLSTM_CRF(nn.Module):
 
     def __init__(self, vocab_size, tag_to_ix, embedding_dim, hidden_dim):
@@ -85,24 +81,19 @@ class BiLSTM_CRF(nn.Module):
         forward_var_list = [init_alphas]  # 初始状态的forward_var，随着step t变化
         for feat_index in range(feats.shape[1]):  # -1
             gamar_r_l = torch.stack([forward_var_list[feat_index]] * feats.shape[2]).transpose(0, 1)
-            # gamar_r_l = torch.transpose(gamar_r_l,0,1)
             t_r1_k = torch.unsqueeze(feats[:, feat_index, :], 1).transpose(1, 2)  # +1
-            # t_r1_k = feats[:,feat_index,:].repeat(feats.shape[0],1,1).transpose(1, 2)
             aa = gamar_r_l + t_r1_k + torch.unsqueeze(self.transitions, 0)
-            # forward_var_list.append(log_add(aa))
             forward_var_list.append(torch.logsumexp(aa, dim=2))
+
         terminal_var = forward_var_list[-1] + self.transitions[
             self.tag_to_ix[STOP_TAG]].repeat([feats.shape[0], 1])
-        # terminal_var = torch.unsqueeze(terminal_var, 0)
         alpha = torch.logsumexp(terminal_var, dim=1)
         return alpha
 
     def _get_lstm_features(self, sentence):
         self.hidden = self.init_hidden()
         embeds = self.word_embeds(sentence).unsqueeze(dim=0)
-        #embeds = self.word_embeds(sentence).view(len(sentence), 1, -1).transpose(0,1)
         lstm_out, self.hidden = self.lstm(embeds)
-        #lstm_out = lstm_out.view(embeds.shape[1], self.hidden_dim)
         lstm_out = lstm_out.squeeze()
         lstm_feats = self.hidden2tag(lstm_out)
         return lstm_feats
@@ -138,14 +129,12 @@ class BiLSTM_CRF(nn.Module):
         init_vvars[0][self.tag_to_ix[START_TAG]] = 0
 
         # forward_var at step i holds the viterbi variables for step i-1
-        forward_var_list = []
-        forward_var_list.append(init_vvars)
+        forward_var_list = [init_vvars]
 
         for feat_index in range(feats.shape[0]):
             gamar_r_l = torch.stack([forward_var_list[feat_index]] * feats.shape[1])
             gamar_r_l = torch.squeeze(gamar_r_l)
             next_tag_var = gamar_r_l + self.transitions
-            # bptrs_t=torch.argmax(next_tag_var,dim=0)
             viterbivars_t, bptrs_t = torch.max(next_tag_var, dim=1)
 
             t_r1_k = torch.unsqueeze(feats[feat_index], 0)
