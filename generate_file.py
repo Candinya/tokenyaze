@@ -33,7 +33,7 @@ if __name__ == "__main__":
     # 根目录路径
     root_path = r"data/raw"
     # 合并文件
-    target = open(filename, 'w', encoding='utf-8')
+    target = open(MATERIAL_FILE, 'w', encoding='utf-8')
     gen_file(root_path, target)
     target.close()
     print('merge complete.')

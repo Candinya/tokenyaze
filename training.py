@@ -12,8 +12,8 @@ def print_time():
     return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
 
 
-print('loading file {} ... @ {}'.format(filename, print_time()))
-_, content, label = read_file(filename)
+print('loading file {} ... @ {}'.format(MATERIAL_FILE, print_time()))
+_, content, label = read_file(MATERIAL_FILE)
 print('file loaded. @ {}'.format(print_time()))
 
 
@@ -35,9 +35,9 @@ for sentence, tags in data:
             word_to_ix[word] = len(word_to_ix)  # 单词映射，字到序号
 
 if __name__ == "__main__":
-    if os.path.isfile('model/tknyz.model'):
+    if os.path.isfile(MODEL_FILE):
         print('model exists, continue @ {}'.format(print_time()))
-        model = torch.load('model/tknyz.model')
+        model = torch.load(MODEL_FILE)
     else:
         print('model doesnot exist, creating new @ {}'.format(print_time()))
         model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
@@ -47,18 +47,22 @@ if __name__ == "__main__":
     print('start training @ {}'.format(print_time()))
 
     # 训练
-    for epoch in range(epochs):
+    for epoch in range(TRAIN_EPOCHS):
+        print('start epoch {} @ {}'.format(epoch + 1, print_time()))
+
         model.zero_grad()
 
         sentence_in_pad, targets_pad = prepare_sequence_batch(data, word_to_ix, tag_to_ix)
         loss = model.neg_log_likelihood_parallel(sentence_in_pad, targets_pad)
 
+        print('start optimize @ {}'.format(print_time()))
         loss.backward()
         optimizer.step()
 
         # 保存模型
-        torch.save(model, 'model/tknyz.model')
-        torch.save(model.state_dict(), 'model/tknyz_all.model')
-        print('epoch: {}/{}, loss:{:.6f} @ {}'.format(epoch + 1, epochs, loss.item(), print_time()))
+        print('saving model... @ {}'.format(print_time()))
+        torch.save(model, MODEL_FILE)
+        torch.save(model.state_dict(), MODEL_DICT)
+        print('epoch: {}/{}, loss:{:.6f} @ {}'.format(epoch + 1, TRAIN_EPOCHS, loss.item(), print_time()))
 
     print('training finished @ {}'.format(print_time()))

@@ -1,8 +1,9 @@
 from training import word_to_ix
 from data_process import prepare_sequence
+from config import MODEL_FILE
 import torch
 
-net = torch.load('model/tknyz.model')
+net = torch.load(MODEL_FILE)
 net.eval()
 
 
