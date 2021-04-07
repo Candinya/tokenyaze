@@ -8,13 +8,13 @@ import os.path
 import time
 
 
-def print_time():
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+def print_log(log):
+    print('[{}]{}'.format(time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()), log))
 
 
-print('loading file {} ... @ {}'.format(MATERIAL_FILE, print_time()))
+print_log('loading file {} ...'.format(MATERIAL_FILE))
 _, content, label = read_file(MATERIAL_FILE)
-print('file loaded. @ {}'.format(print_time()))
+print_log('file loaded.')
 
 
 def train_data(content, label):
@@ -26,7 +26,7 @@ def train_data(content, label):
 
 data = train_data(content, label)
 
-print('start word embedding... @ {}'.format(print_time()))
+print_log('start word embedding...')
 word_to_ix = {'<PAD>': 0}
 for sentence, tags in data:
     for word in sentence:
@@ -35,34 +35,35 @@ for sentence, tags in data:
 
 if __name__ == "__main__":
     if os.path.isfile(MODEL_FILE):
-        print('model exists, continue @ {}'.format(print_time()))
+        print_log('model exists, continue')
         model = torch.load(MODEL_FILE)
     else:
-        print('model doesnot exist, creating new @ {}'.format(print_time()))
+        print_log('model doesnot exist, creating new')
         model = BiLSTM_CRF(len(word_to_ix), tag_to_ix, EMBEDDING_DIM, HIDDEN_DIM)
 
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
 
-    print('start training @ {}'.format(print_time()))
+    print_log('start training')
 
     # 训练
     for epoch in range(TRAIN_EPOCHS):
-        print('start epoch {} @ {}'.format(epoch + 1, print_time()))
+        print_log('start epoch {}'.format(epoch + 1))
 
         model.zero_grad()
 
+        print_log('start loading nn')
         sentence_in_pad, targets_pad = prepare_sequence_batch(data, word_to_ix, tag_to_ix)
         loss = model.neg_log_likelihood_parallel(sentence_in_pad, targets_pad)
 
-        print('start gradient descent @ {}'.format(print_time()))
+        print_log('start gradient descent')
         loss.backward()
-        print('start optimize @ {}'.format(print_time()))
+        print_log('start optimize')
         optimizer.step()
 
         # 保存模型
-        print('saving model... @ {}'.format(print_time()))
+        print_log('saving model...')
         torch.save(model, MODEL_FILE)
         torch.save(model.state_dict(), MODEL_DICT)
-        print('epoch: {}/{}, loss:{:.6f} @ {}'.format(epoch + 1, TRAIN_EPOCHS, loss.item(), print_time()))
+        print_log('epoch: {}/{}, loss:{:.6f}'.format(epoch + 1, TRAIN_EPOCHS, loss.item()))
 
-    print('training finished @ {}'.format(print_time()))
+    print_log('training finished')
