@@ -10,7 +10,7 @@ tag_to_ix = {"B": 0, "M": 1, "E": 2, "S": 3, START_TAG: 4, STOP_TAG: 5, PAD_TAG:
 
 def prepare_sequence(seq, to_ix):  # seq是字序列，to_ix是字和序号的字典
     idxs = [to_ix[w] for w in seq]  # idxs是字序列对应的向量
-    return torch.tensor(idxs, dtype=torch.long)
+    return torch.tensor(idxs, dtype=torch.long).cuda()
 
 
 # 将句子转换为字序列

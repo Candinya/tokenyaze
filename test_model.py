@@ -3,12 +3,12 @@ from data_process import prepare_sequence
 from config import MODEL_FILE
 import torch
 
-net = torch.load(MODEL_FILE)
+net = torch.load(MODEL_FILE).cuda()
 net.eval()
 
 
 def tknyz(stri):
-    precheck_sent = prepare_sequence(stri, word_to_ix)
+    precheck_sent = prepare_sequence(stri, word_to_ix).cuda()
 
     label = net(precheck_sent)[1]
 

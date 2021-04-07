@@ -10,7 +10,7 @@ def argmax(vec):  # 返回每一行最大值的索引
 
 def prepare_sequence(seq, to_ix):  # seq是字序列，to_ix是字和序号的字典
     idxs = [to_ix[w] for w in seq]  # idxs是字序列对应的向量
-    return torch.tensor(idxs, dtype=torch.long)
+    return torch.tensor(idxs, dtype=torch.long).cuda()
 
 
 def prepare_sequence_batch(data, word_to_ix, tag_to_ix):
@@ -24,8 +24,8 @@ def prepare_sequence_batch(data, word_to_ix, tag_to_ix):
         tag_pad = tag + ['<PAD>'] * (max_len - len(tag))
         seqs_pad.append(seq_pad)
         tags_pad.append(tag_pad)
-    idxs_pad = torch.tensor([[word_to_ix[w] for w in seq] for seq in seqs_pad], dtype=torch.long)
-    tags_pad = torch.tensor([[tag_to_ix[t] for t in tag] for tag in tags_pad], dtype=torch.long)
+    idxs_pad = torch.tensor([[word_to_ix[w] for w in seq] for seq in seqs_pad], dtype=torch.long).cuda()
+    tags_pad = torch.tensor([[tag_to_ix[t] for t in tag] for tag in tags_pad], dtype=torch.long).cuda()
     return idxs_pad, tags_pad
 
 
@@ -50,17 +50,17 @@ class BiLSTM_CRF(nn.Module):
         self.tag_to_ix = tag_to_ix
         self.tagset_size = len(tag_to_ix)
 
-        self.word_embeds = nn.Embedding(vocab_size, embedding_dim)
+        self.word_embeds = nn.Embedding(vocab_size, embedding_dim).cuda()
         self.lstm = nn.LSTM(embedding_dim, hidden_dim // 2,
-                            num_layers=1, bidirectional=True, batch_first=True)
+                            num_layers=1, bidirectional=True, batch_first=True).cuda()
 
         # Maps the output of the LSTM into tag space.
-        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size)
+        self.hidden2tag = nn.Linear(hidden_dim, self.tagset_size).cuda()
 
         # Matrix of transition parameters.  Entry i,j is the score of
         # transitioning *to* i *from* j.
         self.transitions = nn.Parameter(
-            torch.randn(self.tagset_size, self.tagset_size))  # 随机初始化转移矩阵
+            torch.randn(self.tagset_size, self.tagset_size)).cuda()  # 随机初始化转移矩阵
 
         # These two statements enforce the constraint that we never transfer
         # to the start tag and we never transfer from the stop tag
@@ -70,13 +70,13 @@ class BiLSTM_CRF(nn.Module):
         self.hidden = self.init_hidden()
 
     def init_hidden(self):
-        return (torch.randn(2, 1, self.hidden_dim // 2),
-                torch.randn(2, 1, self.hidden_dim // 2))  # 初始隐状态概率，第1个字是O1的实体标记是qi的概率
+        return (torch.randn(2, 1, self.hidden_dim // 2).cuda(),
+                torch.randn(2, 1, self.hidden_dim // 2).cuda())  # 初始隐状态概率，第1个字是O1的实体标记是qi的概率
 
     # 所有路径的得分，CRF的分母
     def _forward_alg_new_parallel(self, feats):
         # Do the forward algorithm to compute the partition function
-        init_alphas = torch.full([feats.shape[0], self.tagset_size], -10000.)  # 初始隐状态概率，第1个字是O1的实体标记是qi的概率
+        init_alphas = torch.full([feats.shape[0], self.tagset_size], -10000.).cuda()  # 初始隐状态概率，第1个字是O1的实体标记是qi的概率
         # START_TAG has all of the score.
         init_alphas[:, self.tag_to_ix[START_TAG]] = 0.
 
@@ -120,8 +120,8 @@ class BiLSTM_CRF(nn.Module):
         # Gives the score of provided tag sequences
         # feats = feats.transpose(0,1)
 
-        score = torch.zeros(tags.shape[0])
-        tags = torch.cat([torch.full([tags.shape[0], 1], self.tag_to_ix[START_TAG], dtype=torch.long), tags], dim=1)
+        score = torch.zeros(tags.shape[0]).cuda()
+        tags = torch.cat([torch.full([tags.shape[0], 1], self.tag_to_ix[START_TAG], dtype=torch.long).cuda(), tags], dim=1)
         for i in range(feats.shape[1]):
             feat = feats[:, i, :]
             score = score + \
@@ -134,7 +134,7 @@ class BiLSTM_CRF(nn.Module):
         backpointers = []
 
         # Initialize the viterbi variables in log space
-        init_vvars = torch.full((1, self.tagset_size), -10000.)
+        init_vvars = torch.full((1, self.tagset_size), -10000.).cuda()
         init_vvars[0][self.tag_to_ix[START_TAG]] = 0
 
         # forward_var at step i holds the viterbi variables for step i-1
