@@ -23,5 +23,4 @@ def tknyz(stri):
 
 if __name__ == "__main__":
     while True:
-        stri = input('输入未分词语句：')  # 改善人民生活水平，建设社会主义政治经济。
-        print('分词结果：', tknyz(stri))
+        print('分词结果：', tknyz(input('输入未分词语句：')))

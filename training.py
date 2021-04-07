@@ -27,8 +27,7 @@ def train_data(content, label):
 data = train_data(content, label)
 
 print('start word embedding... @ {}'.format(print_time()))
-word_to_ix = {}
-word_to_ix['<PAD>'] = 0
+word_to_ix = {'<PAD>': 0}
 for sentence, tags in data:
     for word in sentence:
         if word not in word_to_ix:
