@@ -54,8 +54,9 @@ if __name__ == "__main__":
         sentence_in_pad, targets_pad = prepare_sequence_batch(data, word_to_ix, tag_to_ix)
         loss = model.neg_log_likelihood_parallel(sentence_in_pad, targets_pad)
 
-        print('start optimize @ {}'.format(print_time()))
+        print('start gradient descent @ {}'.format(print_time()))
         loss.backward()
+        print('start optimize @ {}'.format(print_time()))
         optimizer.step()
 
         # 保存模型
